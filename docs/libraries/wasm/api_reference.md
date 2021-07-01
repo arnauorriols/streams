@@ -7,8 +7,8 @@ The API is spread out across three categories:
 - [Types](#Types)
 
 ### Author
-Main user implementation of a Channel. Generates the channel, processes subscriptions 
-and 
+Main user implementation of a Channel. Generates the channel, processes subscriptions,
+manages key distribution, publishes messages.
 
 #### new(seed, options, multi_branching): Author 
 Generates an Author instance 
@@ -189,8 +189,8 @@ Fetch the next message sent by each publisher (empty array if none are present).
 
 
 ### Subscriber
-Additional user implementations of a Channel. Can publish and read from public branches, and 
-branches that have been restricted by keyload messages that contain their public key. 
+Additional user implementations of a Channel. Can publish and read from public branches, and
+branches that have been restricted by keyload messages that contain their public key.
 
 #### new(seed, options): Subscriber 
 Generates a Subscriber instance 

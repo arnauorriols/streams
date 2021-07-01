@@ -1,6 +1,8 @@
 # Iota Streams C Bindings API Reference
 
 ### Author
+Main user implementation of a Channel. Generates the channel, processes subscriptions,
+manages key distribution, publishes messages.
 
 #### auth_new(seed, encoding, payload_length, multi_branching, tsp): author_t 
 Generates an Author instance 
@@ -223,6 +225,8 @@ Fetch the current user state to see the latest links for each publisher
 
 
 ### Subscriber 
+Additional user implementations of a Channel. Can publish and read from public branches, and
+branches that have been restricted by keyload messages that contain their public key.
 
 #### sub_new(seed, encoding, payload_length, transport): Subscriber 
 Generates an Author instance 
