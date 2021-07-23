@@ -14,11 +14,11 @@ pub trait HasLink: Sized + Default + Clone + Eq {
     /// Type of "base" links. For http it's domain name.
     type Base: Default + Clone;
 
-    /// Get base part of the link.
-    fn base(&self) -> &Self::Base;
-
     /// Type of "relative" links. For http it's URL path.
     type Rel: Default + Clone;
+
+    /// Get base part of the link.
+    fn base(&self) -> &Self::Base;
 
     /// Get relative part of the link.
     fn rel(&self) -> &Self::Rel;
@@ -57,9 +57,7 @@ impl<Link> Cursor<Link> {
             seq_no,
         }
     }
-}
 
-impl<Link> Cursor<Link> {
     pub fn next_branch(&mut self) {
         self.branch_no += 1;
         self.seq_no = 0;
