@@ -417,6 +417,13 @@ to ensure the user state matches all other publishers.</p>
 <tr><td>subscriber</td><td><code>subscriber_t const *</code></td><td>Subscriber instance</td></tr>
 <tr><td><strong>Returns:</strong> Error code.</td><td></td><td></td></tr>
 </tbody></table>
+<h4 id="sub_author_public_keypk-subscriber-a-hreferrerr_ta"><a class="header" href="#sub_author_public_keypk-subscriber-a-hreferrerr_ta">sub_author_public_key(pk, subscriber): <a href="#Err">err_t</a></a></h4>
+<p>Retrieve the Author public key. Errors if no channel is registered.</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td>pk</td><td><code>public_key_t const *</code></td><td>Placeholder for resulting Author Public Key</td></tr>
+<tr><td>subscriber</td><td><code>subscriber_t const *</code></td><td>Subscriber instance</td></tr>
+<tr><td><strong>Returns:</strong> Error code.</td><td></td><td></td></tr>
+</tbody></table>
 <h4 id="sub_is_registeredsubscriber-uint8_t"><a class="header" href="#sub_is_registeredsubscriber-uint8_t">sub_is_registered(subscriber): uint8_t</a></h4>
 <p>Check if subscriber has processed an announcement message.</p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>

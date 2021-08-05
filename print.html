@@ -640,6 +640,11 @@ and </p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><strong>Returns:</strong> The Author public key in hex representation.</td><td></td><td></td></tr>
 </tbody></table>
+<h4 id="fetch_state-arraya-hreflibrarieswasmapi_referencehtmluserstateuserstatea"><a class="header" href="#fetch_state-arraya-hreflibrarieswasmapi_referencehtmluserstateuserstatea">fetch_state(): Array&lt;<a href="libraries/wasm/api_reference.html#UserState">UserState</a>&gt;</a></h4>
+<p>Retrieve the currently known publisher states for the channel.</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><strong>Returns:</strong> An array of user state objects representing the currently known state of all publishers in the channel.</td><td></td><td></td></tr>
+</tbody></table>
 <h4 id="the-following-functions-require-authorclone-to-use-as-they-consume-the-instance"><a class="header" href="#the-following-functions-require-authorclone-to-use-as-they-consume-the-instance">The following functions require author.clone() to use, as they consume the instance</a></h4>
 <h4 id="async---send_announce-a-hreflibrarieswasmapi_referencehtmluserresponseuserresponsea"><a class="header" href="#async---send_announce-a-hreflibrarieswasmapi_referencehtmluserresponseuserresponsea"><em>async -</em> send_announce(): <a href="libraries/wasm/api_reference.html#UserResponse">UserResponse</a></a></h4>
 <p>Send an announcement message, initialising the channel </p>
@@ -792,6 +797,11 @@ branches that have been restricted by keyload messages that contain their public
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><strong>Returns:</strong> The Subscriber public key in hex representation.</td><td></td><td></td></tr>
 </tbody></table>
+<h4 id="author_public_key-string"><a class="header" href="#author_public_key-string">author_public_key(): string</a></h4>
+<p>Retrieve the Author public key. Errors if no channel is registered.</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><strong>Returns:</strong> The Subscriber public key in hex representation.</td><td></td><td></td></tr>
+</tbody></table>
 <h4 id="is_registered-bool"><a class="header" href="#is_registered-bool">is_registered(): bool</a></h4>
 <p>Check if the subscriber instance has processed a channel announcement. </p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
@@ -800,6 +810,11 @@ branches that have been restricted by keyload messages that contain their public
 <h4 id="unregister"><a class="header" href="#unregister">unregister()</a></h4>
 <p>Unregister a subscriber instance from a channel. </p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+</tbody></table>
+<h4 id="fetch_state-arraya-hreflibrarieswasmapi_referencehtmluserstateuserstatea-1"><a class="header" href="#fetch_state-arraya-hreflibrarieswasmapi_referencehtmluserstateuserstatea-1">fetch_state(): Array&lt;<a href="libraries/wasm/api_reference.html#UserState">UserState</a>&gt;</a></h4>
+<p>Retrieve the currently known publisher states for the channel.</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><strong>Returns:</strong> An array of user state objects representing the currently known state of all publishers in the channel.</td><td></td><td></td></tr>
 </tbody></table>
 <h4 id="the-following-functions-require-subscriberclone-to-use-as-they-consume-the-instance"><a class="header" href="#the-following-functions-require-subscriberclone-to-use-as-they-consume-the-instance">The following functions require subscriber.clone() to use, as they consume the instance</a></h4>
 <h4 id="async---send_subscribelink-a-hreflibrarieswasmapi_referencehtmluserresponseuserresponsea"><a class="header" href="#async---send_subscribelink-a-hreflibrarieswasmapi_referencehtmluserresponseuserresponsea"><em>async -</em> send_subscribe(link): <a href="libraries/wasm/api_reference.html#UserResponse">UserResponse</a></a></h4>
@@ -888,6 +903,10 @@ to ensure the user state matches all other publishers.</p>
 | --------------- | ----------------------------- | ----------------------------------- |
 | psk             | String                        | Pre shared key in string format     |</p>
 <p><strong>Returns:</strong> A PskId String representing the Psk in store.</p>
+<h4 id="reset_state"><a class="header" href="#reset_state">reset_state()</a></h4>
+<p>Reset the mapping of known publisher states for the channel for retrieval of messages from scratch.</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+</tbody></table>
 <h2 id="types"><a class="header" href="#types">Types</a></h2>
 <p>Generic Types and Primitives used in Wasm API:</p>
 <ul>
@@ -897,6 +916,8 @@ to ensure the user state matches all other publishers.</p>
 <li><a href="libraries/wasm/api_reference.html#Address">Address</a></li>
 <li><a href="libraries/wasm/api_reference.html#Message">Message</a></li>
 <li><a href="libraries/wasm/api_reference.html#NextMsgId">NextMsgId</a></li>
+<li><a href="libraries/wasm/api_reference.html#Cursor">Cursor</a></li>
+<li><a href="libraries/wasm/api_reference.html#UserState">UserState</a></li>
 </ul>
 <h3 id="client"><a class="header" href="#client">Client</a></h3>
 <p>Transport client for interacting with an Iota node.</p>
@@ -1000,7 +1021,7 @@ using strings for the link and seq_link inputs.</p>
 <tr><td>masked_payload</td><td><code>Uint8Array</code></td><td>Masked payload bytes</td></tr>
 <tr><td><strong>Returns:</strong> A Message wrapper object</td><td></td><td></td></tr>
 </tbody></table>
-<h4 id="get_pk-string"><a class="header" href="#get_pk-string">get_pk(): string</a></h4>
+<h4 id="get_public_key-string-2"><a class="header" href="#get_public_key-string-2">get_public_key(): string</a></h4>
 <p>Fetch the public key of the Message sender (default if none is presented)</p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><strong>Returns:</strong> Public key in hex representation of the sender of the message</td><td></td><td></td></tr>
@@ -1017,17 +1038,17 @@ using strings for the link and seq_link inputs.</p>
 </tbody></table>
 <h3 id="nextmsgid"><a class="header" href="#nextmsgid">NextMsgId</a></h3>
 <p>A wrapper for a Rust NextMsgId structure</p>
-<h4 id="newpk-msgid-nextmsgid"><a class="header" href="#newpk-msgid-nextmsgid">new(pk, msgid): NextMsgId</a></h4>
-<p>Make a NextMsgId object from the public key and expected next message identifier</p>
+<h4 id="newidentifier-msgid-nextmsgid"><a class="header" href="#newidentifier-msgid-nextmsgid">new(identifier, msgid): NextMsgId</a></h4>
+<p>Make a NextMsgId object from the identifier and expected next message address</p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
-<tr><td>pk</td><td><code>string</code></td><td>Public key for expected message</td></tr>
+<tr><td>identifier</td><td><code>string</code></td><td>Identifier for expected message</td></tr>
 <tr><td>msgid</td><td><a href="libraries/wasm/api_reference.html#Address"><code>Address</code></a></td><td>Address of expected next message</td></tr>
 <tr><td><strong>Returns:</strong> A NextMsgId wrapper object</td><td></td><td></td></tr>
 </tbody></table>
-<h4 id="get_pk-string-1"><a class="header" href="#get_pk-string-1">get_pk(): string</a></h4>
-<p>Fetch the public key of the Message sender</p>
+<h4 id="get_identifier-string"><a class="header" href="#get_identifier-string">get_identifier(): string</a></h4>
+<p>Fetch the identifier of the Message sender</p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
-<tr><td><strong>Returns:</strong> Public key in hex representation of the sender of the message</td><td></td><td></td></tr>
+<tr><td><strong>Returns:</strong> Identifier in hex representation of the sender of the message</td><td></td><td></td></tr>
 </tbody></table>
 <h4 id="get_link-address"><a class="header" href="#get_link-address">get_link(): Address</a></h4>
 <p>Fetch the link of the expected next message for that sender</p>
@@ -1067,6 +1088,35 @@ using strings for the link and seq_link inputs.</p>
 <p>Fetch Public Keys in string formatting</p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr><td><strong>Returns:</strong> Array of Public Keys in string formatting</td><td></td><td></td></tr>
+</tbody></table>
+<h3 id="cursor"><a class="header" href="#cursor">Cursor</a></h3>
+<p>The publishing state of a particular publisher (The latest sequenced message known for that publisher). This includes:</p>
+<ul>
+<li>The latest published message link</li>
+<li>The sequence state number of the publisher</li>
+<li>A branch number for that latest posted message </li>
+</ul>
+<h3 id="userstate"><a class="header" href="#userstate">UserState</a></h3>
+<p>A wrapper around a publisher state. Includes the identifier and <a href="libraries/wasm/api_reference.html#Cursor">cursor</a> of the publisher</p>
+<h4 id="get_identifier"><a class="header" href="#get_identifier">get_identifier()</a></h4>
+<p>Get the public key of the user from the state</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><strong>Returns:</strong> Identifier of publisher in hex formatting</td><td></td><td></td></tr>
+</tbody></table>
+<h4 id="get_link"><a class="header" href="#get_link">get_link()</a></h4>
+<p>Get the link from the internal cursor object </p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><strong>Returns:</strong> The latest published message link</td><td></td><td></td></tr>
+</tbody></table>
+<h4 id="get_seq_no"><a class="header" href="#get_seq_no">get_seq_no()</a></h4>
+<p>Get the sequence state number from the internal cursor object </p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><strong>Returns:</strong> The latest sequence state number of the publisher</td><td></td><td></td></tr>
+</tbody></table>
+<h4 id="get_branch_no"><a class="header" href="#get_branch_no">get_branch_no()</a></h4>
+<p>Get the branch state number from the internal cursor object</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td><strong>Returns:</strong> The latest branch state number of the publisher</td><td></td><td></td></tr>
 </tbody></table>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="troubleshooting-1"><a class="header" href="#troubleshooting-1">Troubleshooting</a></h1>
 <h2 id="join-the-discussion-1"><a class="header" href="#join-the-discussion-1">Join the discussion</a></h2>
@@ -1564,6 +1614,13 @@ to ensure the user state matches all other publishers.</p>
 <tr><td>subscriber</td><td><code>subscriber_t const *</code></td><td>Subscriber instance</td></tr>
 <tr><td><strong>Returns:</strong> Error code.</td><td></td><td></td></tr>
 </tbody></table>
+<h4 id="sub_author_public_keypk-subscriber-a-hreflibrariescapi_referencehtmlerrerr_ta"><a class="header" href="#sub_author_public_keypk-subscriber-a-hreflibrariescapi_referencehtmlerrerr_ta">sub_author_public_key(pk, subscriber): <a href="libraries/c/api_reference.html#Err">err_t</a></a></h4>
+<p>Retrieve the Author public key. Errors if no channel is registered.</p>
+<table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
+<tr><td>pk</td><td><code>public_key_t const *</code></td><td>Placeholder for resulting Author Public Key</td></tr>
+<tr><td>subscriber</td><td><code>subscriber_t const *</code></td><td>Subscriber instance</td></tr>
+<tr><td><strong>Returns:</strong> Error code.</td><td></td><td></td></tr>
+</tbody></table>
 <h4 id="sub_is_registeredsubscriber-uint8_t"><a class="header" href="#sub_is_registeredsubscriber-uint8_t">sub_is_registered(subscriber): uint8_t</a></h4>
 <p>Check if subscriber has processed an announcement message.</p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
@@ -1846,7 +1903,7 @@ to ensure the subscriber state matches all other publishers.</p>
 <table><thead><tr><th>Param</th><th>Type</th><th>Description</th></tr></thead><tbody>
 <tr><td>state</td><td><code>next_msg_ids_t const *</code></td><td>A NextMsgId wrapper</td></tr>
 </tbody></table>
-<h3 id="userstate"><a class="header" href="#userstate">UserState</a></h3>
+<h3 id="userstate-1"><a class="header" href="#userstate-1">UserState</a></h3>
 <p>A wrapper for a list mapping Public Key strings and a state cursor.</p>
 <h4 id="get_link_from_statestate-pub_key-address_t-const-"><a class="header" href="#get_link_from_statestate-pub_key-address_t-const-">get_link_from_state(state, pub_key): address_t const *</a></h4>
 <p>Get the latest link of a specific user by their Ed25519 Public Key</p>
