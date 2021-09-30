@@ -1,7 +1,7 @@
 use iota_streams_app::{
     identifier::Identifier,
     message::{
-        HasLink as _,
+        HasLink,
         LinkGenerator,
     },
 };
@@ -67,7 +67,7 @@ impl<Trans> User<Trans> {
 
     /// Fetch the Address (application instance) of the channel.
     pub fn channel_address(&self) -> Option<&ChannelAddress> {
-        self.user.appinst.as_ref().map(|x| &x.appinst)
+        self.user.channel_link().map(HasLink::base)
     }
 
     /// Channel Author's signature public key
@@ -91,12 +91,11 @@ impl<Trans> User<Trans> {
     }
 
     pub fn is_registered(&self) -> bool {
-        self.user.appinst.is_some()
+        self.user.is_registered()
     }
 
     pub fn unregister(&mut self) {
-        self.user.appinst = None;
-        self.user.author_sig_pk = None;
+        self.user.unregister()
     }
 
     // Utility
@@ -363,7 +362,7 @@ impl<Trans: Transport + Clone> User<Trans> {
     ///  * `link` - Address of the message to be processed
     pub async fn receive_sequence(&mut self, link: &Address) -> Result<Address> {
         let msg = self.transport.recv_message(link).await?;
-        if let Some(_addr) = &self.user.appinst {
+        if let Some(_addr) = &self.user.channel_link() {
             let seq_msg = self
                 .user
                 .handle_sequence(msg.binary, MsgInfo::Sequence, true)

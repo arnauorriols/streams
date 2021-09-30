@@ -11,7 +11,7 @@ use crate::identifier::Identifier;
 use iota_streams_ddml::types::Bytes;
 
 /// Type of "absolute" links. For http it's the absolute URL.
-pub trait HasLink: Sized + Default + Clone + Eq {
+pub trait HasLink {
     /// Type of "base" links. For http it's domain name.
     type Base: Default + Clone;
 
@@ -109,7 +109,7 @@ impl<Link: fmt::Debug> fmt::Debug for Cursor<Link> {
 }
 
 /// Abstraction-helper to generate message links.
-pub trait LinkGenerator<Link: HasLink>: Default {
+pub trait LinkGenerator<Link: HasLink> {
     /// Used by Author to generate a new application instance: channels address and announcement message identifier
     fn gen(&mut self, pk: &ed25519::PublicKey, idx: u64);
 

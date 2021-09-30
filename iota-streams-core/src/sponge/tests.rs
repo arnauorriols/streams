@@ -8,7 +8,7 @@ use crate::prelude::{
     Vec,
 };
 
-fn bytes_spongosn<F: PRP>(n: usize) {
+fn bytes_spongosn<F: PRP + Default>(n: usize) {
     let mut rng = Spongos::<F>::init();
     rng.absorb(&vec![0; 10]);
     rng.commit();

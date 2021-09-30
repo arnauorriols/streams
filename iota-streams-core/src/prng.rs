@@ -75,7 +75,7 @@ pub struct Prng<G: PRP> {
     _phantom: core::marker::PhantomData<G>,
 }
 
-impl<G: PRP> Prng<G> {
+impl <G> Prng<G> where G: PRP {
     /// Create PRNG instance and init with a secret key.
     pub fn init(secret_key: KeyType<G>) -> Self {
         Self {
@@ -83,8 +83,10 @@ impl<G: PRP> Prng<G> {
             _phantom: core::marker::PhantomData,
         }
     }
+}
 
-    fn key_from_seed(seed: impl AsRef<[u8]>) -> KeyType<G> {
+impl<G> Prng<G> where G: PRP + Default{
+    fn key_from_seed(seed: impl AsRef<[u8]>) -> KeyType<G> where G: Default {
         let mut s = Spongos::<G>::init();
         s.absorb(seed);
         s.commit();
@@ -113,7 +115,7 @@ impl<G: PRP> Prng<G> {
     }
 
     /// Generate randomness with a unique nonce for the current PRNG instance.
-    pub fn gen(&self, nonce: impl AsRef<[u8]>, mut rnd: impl AsMut<[u8]>) {
+    pub fn gen(&self, nonce: impl AsRef<[u8]>, mut rnd: impl AsMut<[u8]>) where G: Default{
         let mut s = Spongos::<G>::init();
         self.gen_with_spongos(&mut s, &[nonce.as_ref()], &mut [rnd.as_mut()]);
     }
@@ -136,7 +138,7 @@ pub fn init<G: PRP>(secret_key: KeyType<G>) -> Prng<G> {
     Prng::init(secret_key)
 }
 
-pub fn from_seed<G: PRP>(domain: &str, seed: &str) -> Prng<G> {
+pub fn from_seed<G>(domain: &str, seed: &str) -> Prng<G> where G: PRP + Default{
     let mut s = Spongos::<G>::init();
     s.absorb(seed.as_bytes());
     s.commit();
@@ -145,7 +147,7 @@ pub fn from_seed<G: PRP>(domain: &str, seed: &str) -> Prng<G> {
     Prng::init(s.squeeze_arr())
 }
 
-pub fn dbg_init_str<G: PRP>(secret_key: &str) -> Prng<G> {
+pub fn dbg_init_str<G>(secret_key: &str) -> Prng<G> where G: PRP + Default {
     from_seed("IOTA Streams dbg prng init", secret_key)
 }
 
@@ -177,7 +179,7 @@ impl<G: PRP> Rng<G> {
     }
 }
 
-impl<G: PRP> rand::RngCore for Rng<G> {
+impl<G> rand::RngCore for Rng<G> where G: PRP + Default{
     fn next_u32(&mut self) -> u32 {
         let mut v = [0_u8; 4];
         self.prng.gen(&self.nonce[..], &mut v);

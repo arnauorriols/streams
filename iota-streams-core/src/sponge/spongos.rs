@@ -102,7 +102,7 @@ pub struct Spongos<F> {
 
 impl<F: PRP> Spongos<F> {
     /// Create a Spongos object, initialize state with zero trits.
-    pub fn init() -> Self {
+    pub fn init() -> Self where F: Default {
         Self::init_with_state(F::default())
     }
 
@@ -292,15 +292,9 @@ impl<F: PRP> Spongos<F> {
         self.absorb(x.as_ref());
     }
 
-    /// Fork Spongos object into another.
-    /// Essentially this just creates a clone of self.
-    pub fn fork_at(&self, fork: &mut Self) {
-        fork.clone_from(self);
-    }
-
     /// Fork Spongos object into a new one.
     /// Essentially this just creates a clone of self.
-    pub fn fork(&self) -> Self {
+    pub fn fork(&self) -> Self where F: Clone {
         self.clone()
     }
 
@@ -312,7 +306,7 @@ impl<F: PRP> Spongos<F> {
     }
 }
 
-impl<F: PRP> Default for Spongos<F> {
+impl<F> Default for Spongos<F> where F: PRP + Default {
     fn default() -> Self {
         Self::init()
     }
@@ -367,7 +361,7 @@ impl<F: PRP> fmt::Debug for Spongos<F> {
 /// Shortcut for `Spongos::init`.
 pub fn init<F>() -> Spongos<F>
 where
-    F: PRP,
+    F: PRP + Default,
 {
     Spongos::init()
 }
@@ -375,7 +369,7 @@ where
 /// Hash (one piece of) data with Spongos.
 pub fn hash_data<F>(x: &[u8], y: &mut [u8])
 where
-    F: PRP,
+    F: PRP + Default,
 {
     let mut s = Spongos::<F>::init();
     s.absorb(x);
@@ -383,8 +377,9 @@ where
     s.squeeze(y);
 }
 
-impl<F: PRP> Digest for Spongos<F>
+impl<F> Digest for Spongos<F>
 where
+    F: PRP + Default,
     F::CapacitySize: Mul<U2>,
     <F::CapacitySize as Mul<U2>>::Output: ArrayLength<u8>,
 {

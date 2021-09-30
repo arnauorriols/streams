@@ -133,9 +133,9 @@ where
     /// Link store.
     pub(crate) link_store: LS,
 
-    /// Application instance - Link to the announce message.
+    /// Link to the announce message.
     /// None if channel is not created or user is not subscribed.
-    pub(crate) appinst: Option<Link>,
+    channel_link: Option<Link>,
 
     /// Flags bit field
     pub flags: u8,
@@ -174,7 +174,7 @@ where
             author_sig_pk: None,
             link_gen: LG::default(),
             link_store: LS::default(),
-            appinst: None,
+            channel_link: None,
             flags: 0,
             message_encoding: Vec::new(),
             uniform_payload_length: 0,
@@ -220,7 +220,7 @@ where
             author_sig_pk: None,
             link_gen: LG::default(),
             link_store: LS::default(),
-            appinst: None,
+            channel_link: None,
             flags,
             message_encoding,
             uniform_payload_length,
@@ -231,21 +231,34 @@ where
 
     /// Create a new channel (without announcing it). User now becomes Author.
     pub fn create_channel(&mut self, channel_idx: u64) -> Result<()> {
-        if self.appinst.is_some() {
+        if self.channel_link.is_some() {
             return err!(ChannelCreationFailure(
-                self.appinst.as_ref().unwrap().base().to_string()
+                self.channel_link.as_ref().unwrap().base().to_string()
             ));
         }
         self.link_gen.gen(&self.sig_kp.public, channel_idx);
-        let appinst = self.link_gen.get();
+        let channel_link = self.link_gen.get();
 
         let identifier = self.sig_kp.public.into();
         self.key_store
-            .insert_cursor(identifier, Cursor::new_at(appinst.rel().clone(), 0, 2_u32))?;
+            .insert_cursor(identifier, Cursor::new_at(channel_link.rel().clone(), 0, 2_u32))?;
         self.author_sig_pk = Some(self.sig_kp.public);
-        self.anchor = Some(Cursor::new_at(appinst.clone(), 0, 2_u32));
-        self.appinst = Some(appinst);
+        self.anchor = Some(Cursor::new_at(channel_link.clone(), 0, 2_u32));
+        self.channel_link = Some(channel_link);
         Ok(())
+    }
+
+    pub fn channel_link(&self) -> Option<&Link> {
+        self.channel_link.as_ref()
+    }
+
+    pub fn is_registered(&self) -> bool {
+        self.channel_link.is_some()
+    }
+
+    pub fn unregister(&mut self) {
+        self.channel_link = None;
+        self.author_sig_pk = None;
     }
 
     /// Channel Author's signature public key
@@ -255,15 +268,15 @@ where
 
     /// Reset link store and key store to original state
     pub fn reset_state(&mut self) -> Result<()> {
-        match &self.appinst {
-            Some(appinst) => {
+        match &self.channel_link {
+            Some(channel_link) => {
                 let mut key_store = Keys::default();
                 for (id, _cursor) in self.key_store.iter() {
-                    key_store.insert_cursor(*id, Cursor::new_at(appinst.rel().clone(), 0, 2_u32))?;
+                    key_store.insert_cursor(*id, Cursor::new_at(channel_link.rel().clone(), 0, 2_u32))?;
                 }
                 self.key_store = key_store;
 
-                self.link_gen.reset(appinst.clone());
+                self.link_gen.reset(channel_link.clone());
                 Ok(())
             }
             None => err(UserNotRegistered),
@@ -297,10 +310,10 @@ where
         &self,
         preparsed: PreparsedMessage<'_, F, Link>,
     ) -> Result<UnwrappedMessage<F, Link, announce::ContentUnwrap<F>>> {
-        if let Some(appinst) = &self.appinst {
+        if let Some(channel_link) = &self.channel_link {
             try_or!(
-                appinst == &preparsed.header.link,
-                UserAlreadyRegistered(appinst.base().to_string())
+                channel_link == &preparsed.header.link,
+                UserAlreadyRegistered(channel_link.base().to_string())
             )?;
         }
 
@@ -330,7 +343,7 @@ where
         // TODO: Verify trust to Author's public key?
         // At the moment the Author is trusted unconditionally.
 
-        // TODO: Verify appinst (address) == public key.
+        // TODO: Verify channel_link (address) == public key.
         // At the moment the Author is free to choose any address, not tied to PK.
 
         let cursor = Cursor::new_at(link.rel().clone(), 0, 2_u32);
@@ -341,7 +354,7 @@ where
         // Reset link_gen
         self.link_gen.reset(link.clone());
         self.anchor = Some(Cursor::new_at(link.clone(), 0, 2_u32));
-        self.appinst = Some(link);
+        self.channel_link = Some(link);
         self.author_sig_pk = Some(content.sig_pk);
         self.flags = content.flags.0;
         Ok(())
@@ -392,7 +405,7 @@ where
         preparsed: PreparsedMessage<'_, F, Link>,
         author_ke_pk: &'a x25519::StaticSecret,
     ) -> Result<UnwrappedMessage<F, Link, subscribe::ContentUnwrap<'a, F, Link>>> {
-        self.ensure_appinst(&preparsed)?;
+        self.ensure_channel_link(&preparsed)?;
         let content = subscribe::ContentUnwrap::new(author_ke_pk)?;
         preparsed.unwrap(&self.link_store, content).await
     }
@@ -415,7 +428,7 @@ where
     }
 
     pub fn insert_subscriber(&mut self, pk: ed25519::PublicKey) -> Result<()> {
-        let ref_link = self.appinst.as_ref().unwrap().rel().clone();
+        let ref_link = self.channel_link.as_ref().unwrap().rel().clone();
         self.key_store
             .insert_cursor(pk.into(), Cursor::new_at(ref_link, 0, SEQ_MESSAGE_NUM))
     }
@@ -456,7 +469,7 @@ where
         &self,
         preparsed: PreparsedMessage<'_, F, Link>,
     ) -> Result<UnwrappedMessage<F, Link, unsubscribe::ContentUnwrap<F, Link>>> {
-        self.ensure_appinst(&preparsed)?;
+        self.ensure_channel_link(&preparsed)?;
         let content = unsubscribe::ContentUnwrap::default();
         preparsed.unwrap(&self.link_store, content).await
     }
@@ -573,7 +586,7 @@ where
     ) -> Result<
         UnwrappedMessage<F, Link, keyload::ContentUnwrap<'a, F, Link, KeysLookup<'a, F, Link, Keys>, OwnKeys<'a>>>,
     > {
-        self.ensure_appinst(&preparsed)?;
+        self.ensure_channel_link(&preparsed)?;
         if let Some(author_sig_pk) = author_sig_pk {
             let content = keyload::ContentUnwrap::new(keys_lookup, own_keys, author_sig_pk);
             preparsed.unwrap(&self.link_store, content).await
@@ -617,12 +630,12 @@ where
         };
 
         // Store any unknown publishers
-        if let Some(appinst) = &self.appinst {
+        if let Some(channel_link) = &self.channel_link {
             for identifier in keys {
                 if !self.key_store.contains(&identifier) {
                     // Store at state 2 since 0 and 1 are reserved states
                     self.key_store
-                        .insert_cursor(identifier, Cursor::new_at(appinst.rel().clone(), 0, 2))?;
+                        .insert_cursor(identifier, Cursor::new_at(channel_link.rel().clone(), 0, 2))?;
                 }
             }
         }
@@ -687,7 +700,7 @@ where
         &'a self,
         preparsed: PreparsedMessage<'a, F, Link>,
     ) -> Result<UnwrappedMessage<F, Link, signed_packet::ContentUnwrap<F, Link>>> {
-        self.ensure_appinst(&preparsed)?;
+        self.ensure_channel_link(&preparsed)?;
         let content = signed_packet::ContentUnwrap::default();
         preparsed.unwrap(&self.link_store, content).await
     }
@@ -778,7 +791,7 @@ where
         &self,
         preparsed: PreparsedMessage<'_, F, Link>,
     ) -> Result<UnwrappedMessage<F, Link, tagged_packet::ContentUnwrap<F, Link>>> {
-        self.ensure_appinst(&preparsed)?;
+        self.ensure_channel_link(&preparsed)?;
         let content = tagged_packet::ContentUnwrap::default();
         preparsed.unwrap(&self.link_store, content).await
     }
@@ -845,7 +858,7 @@ where
                     let msg_link = self
                         .link_gen
                         .link_from(identifier.to_bytes(), Cursor::new_at(&cursor.link, 0, SEQ_MESSAGE_NUM));
-                    let previous_msg_link = Link::from_base_rel(self.appinst.as_ref().unwrap().base(), &cursor.link);
+                    let previous_msg_link = Link::from_base_rel(self.channel_link.as_ref().unwrap().base(), &cursor.link);
                     let header = HDF::new(msg_link)
                         .with_previous_msg_link(Bytes(previous_msg_link.to_bytes()))
                         .with_content_type(SEQUENCE)?
@@ -904,7 +917,7 @@ where
         &self,
         preparsed: PreparsedMessage<'_, F, Link>,
     ) -> Result<UnwrappedMessage<F, Link, sequence::ContentUnwrap<Link>>> {
-        self.ensure_appinst(&preparsed)?;
+        self.ensure_channel_link(&preparsed)?;
         let content = sequence::ContentUnwrap::default();
         preparsed.unwrap(&self.link_store, content).await
     }
@@ -944,12 +957,12 @@ where
             .map(|cursor| cursor.seq_no)
     }
 
-    pub fn ensure_appinst<'a>(&self, preparsed: &PreparsedMessage<'a, F, Link>) -> Result<()> {
-        try_or!(self.appinst.is_some(), UserNotRegistered)?;
+    pub fn ensure_channel_link<'a>(&self, preparsed: &PreparsedMessage<'a, F, Link>) -> Result<()> {
+        try_or!(self.channel_link.is_some(), UserNotRegistered)?;
         try_or!(
-            self.appinst.as_ref().unwrap().base() == preparsed.header.link.base(),
+            self.channel_link.as_ref().unwrap().base() == preparsed.header.link.base(),
             MessageAppInstMismatch(
-                self.appinst.as_ref().unwrap().base().to_string(),
+                self.channel_link.as_ref().unwrap().base().to_string(),
                 preparsed.header.link.base().to_string()
             )
         )?;
@@ -957,8 +970,8 @@ where
     }
 
     pub fn store_psk(&mut self, pskid: PskId, psk: Psk, use_psk: bool) -> Result<()> {
-        match &self.appinst {
-            Some(appinst) => {
+        match &self.channel_link {
+            Some(channel_link) => {
                 if use_psk && self.key_store.get_next_pskid() != None {
                     return err(StateStoreFailure);
                 }
@@ -967,7 +980,7 @@ where
                     self.key_store.insert_psk(
                         pskid.into(),
                         Some(psk),
-                        Cursor::new_at(appinst.rel().clone(), 0, 2_u32),
+                        Cursor::new_at(channel_link.rel().clone(), 0, 2_u32),
                     )?;
                     self.use_psk = use_psk;
                     Ok(())
@@ -1051,7 +1064,7 @@ where
 
     pub fn fetch_state(&self) -> Result<Vec<(Identifier, Cursor<Link>)>> {
         let mut state = Vec::new();
-        try_or!(self.appinst.is_some(), UserNotRegistered)?;
+        try_or!(self.channel_link.is_some(), UserNotRegistered)?;
 
         for (
             pk,
@@ -1062,7 +1075,7 @@ where
             },
         ) in self.key_store.iter()
         {
-            let link = Link::from_base_rel(self.appinst.as_ref().unwrap().base(), link);
+            let link = Link::from_base_rel(self.channel_link.as_ref().unwrap().base(), link);
             state.push((*pk, Cursor::new_at(link, *branch_no, *seq_no)))
         }
         Ok(state)
@@ -1095,10 +1108,10 @@ where
             .absorb(<&Bytes>::from(&self.message_encoding))?
             .absorb(Uint64(self.uniform_payload_length as u64))?;
 
-        let oneof_appinst = Uint8(if self.appinst.is_some() { 1 } else { 0 });
-        ctx.absorb(&oneof_appinst)?;
-        if let Some(ref appinst) = self.appinst {
-            ctx.absorb(<&Fallback<Link>>::from(appinst))?;
+        let oneof_channel_link = Uint8(if self.channel_link.is_some() { 1 } else { 0 });
+        ctx.absorb(&oneof_channel_link)?;
+        if let Some(ref channel_link) = self.channel_link {
+            ctx.absorb(<&Fallback<Link>>::from(channel_link))?;
         }
 
         let oneof_author_sig_pk = Uint8(if self.author_sig_pk.is_some() { 1 } else { 0 });
@@ -1155,10 +1168,10 @@ where
             .absorb(<&Bytes>::from(&self.message_encoding))?
             .absorb(Uint64(self.uniform_payload_length as u64))?;
 
-        let oneof_appinst = Uint8(if self.appinst.is_some() { 1 } else { 0 });
-        ctx.absorb(&oneof_appinst)?;
-        if let Some(ref appinst) = self.appinst {
-            ctx.absorb(<&Fallback<Link>>::from(appinst))?;
+        let oneof_channel_link = Uint8(if self.channel_link.is_some() { 1 } else { 0 });
+        ctx.absorb(&oneof_channel_link)?;
+        if let Some(ref channel_link) = self.channel_link {
+            ctx.absorb(<&Fallback<Link>>::from(channel_link))?;
         }
 
         let oneof_author_sig_pk = Uint8(if self.author_sig_pk.is_some() { 1 } else { 0 });
@@ -1221,14 +1234,14 @@ where
             .absorb(&mut message_encoding)?
             .absorb(&mut uniform_payload_length)?;
 
-        let mut oneof_appinst = Uint8(0);
-        ctx.absorb(&mut oneof_appinst)?
-            .guard(oneof_appinst.0 < 2, AppInstRecoveryFailure(oneof_appinst.0))?;
+        let mut oneof_channel_link = Uint8(0);
+        ctx.absorb(&mut oneof_channel_link)?
+            .guard(oneof_channel_link.0 < 2, AppInstRecoveryFailure(oneof_channel_link.0))?;
 
-        let appinst = if oneof_appinst.0 == 1 {
-            let mut appinst = Link::default();
-            ctx.absorb(<&mut Fallback<Link>>::from(&mut appinst))?;
-            Some(appinst)
+        let channel_link = if oneof_channel_link.0 == 1 {
+            let mut channel_link = Link::default();
+            ctx.absorb(<&mut Fallback<Link>>::from(&mut channel_link))?;
+            Some(channel_link)
         } else {
             None
         };
@@ -1284,10 +1297,10 @@ where
         self.link_store = link_store;
         self.key_store = key_store;
         self.author_sig_pk = author_sig_pk;
-        if let Some(ref seed) = appinst {
+        if let Some(ref seed) = channel_link {
             self.link_gen.reset(seed.clone());
         }
-        self.appinst = appinst;
+        self.channel_link = channel_link;
         self.flags = flags.0;
         self.message_encoding = message_encoding.0;
         self.uniform_payload_length = uniform_payload_length.0 as usize;

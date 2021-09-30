@@ -51,22 +51,22 @@ pub type Psks = HashMap<PskId, Psk>;
 pub type PskIds = [PskId];
 
 /// Derive a Psk from arbitrary secret seed bytes.
-pub fn psk_from_seed<F: PRP>(seed_bytes: &[u8]) -> Psk {
+pub fn psk_from_seed<F>(seed_bytes: &[u8]) -> Psk where F: PRP + Default {
     prng::Prng::<F>::init_with_seed(seed_bytes).gen_arr("PSK")
 }
 
 /// Derive a PskId from existing Psk.
-pub fn pskid_from_psk<F: PRP>(psk: &Psk) -> PskId {
+pub fn pskid_from_psk<F>(psk: &Psk) -> PskId where F: PRP + Default {
     prng::Prng::<F>::init_with_seed(psk).gen_arr("PSKID")
 }
 
 /// Derive a PskId from the same seed that was used to derive the corresponding Psk.
-pub fn pskid_from_seed<F: PRP>(seed_bytes: &[u8]) -> PskId {
+pub fn pskid_from_seed<F>(seed_bytes: &[u8]) -> PskId where F: PRP + Default {
     pskid_from_psk::<F>(&psk_from_seed::<F>(seed_bytes))
 }
 
 /// Make a PskId from string or it's hash if the string is too long.
-pub fn pskid_from_str<F: PRP>(id: &str) -> PskId {
+pub fn pskid_from_str<F>(id: &str) -> PskId where F: PRP + Default {
     if id.as_bytes().len() < PSKID_SIZE {
         let mut pskid = PskId::default();
         pskid.as_mut_slice()[..id.as_bytes().len()].copy_from_slice(id.as_bytes());
