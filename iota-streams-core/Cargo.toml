@@ -31,7 +31,7 @@ spin = { version = "0.9.2", default-features = false, features = ["mutex", "spin
 # thiserror = { version = "1.0.22", default-features = false, optional = false }
 displaydoc = { version = "0.2", default-features = false, optional = false }
 
-iota-crypto = { git = "https://github.com/iotaledger/crypto.rs", features = ["blake2b"], branch = "dev" }
+iota-crypto = { version = "0.7.0", features = ["blake2b"] }
 
 [dev-dependencies]
 criterion = "0.3"
