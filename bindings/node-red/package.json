@@ -1,0 +1,35 @@
+{
+  "name": "node-red-contrib-iota-streams",
+  "version": "0.1.2",
+  "description": "Node-RED nodes for publishing and subscribing to data using IOTA Streams over the Tangle",
+  "main": "subscriber.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iotaledger/streams.git"
+  },
+  "keywords": [
+    "node-RED",
+    "IOTA",
+    "IOTA",
+    "Streams",
+    "IoT",
+    "Tangle"
+  ],
+  "author": "Arnau Orriols <arnau.orriols@iota.org>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/iotaledger/streams/issues"
+  },
+  "homepage": "https://github.com/iotaledger/streams#readme",
+  "node-red": {
+    "nodes": {
+      "Subscriber": "subscriber.js"
+    }
+  },
+  "dependencies": {
+    "node-fetch": "^2.0.0"
+  }
+}

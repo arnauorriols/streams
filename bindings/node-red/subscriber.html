@@ -1,0 +1,36 @@
+<script type="text/javascript">
+    RED.nodes.registerType('subscriber',{
+        category: 'IOTA Streams',
+        color: '#a6bbcf',
+        defaults: {
+            seed: {value:""},
+	    nodeUrl: {value: "https://chrysalis-nodes.iota.org/"},
+            announcementLink: {value:""}
+        },
+        inputs:1,
+        outputs:2,
+        icon: "file.png",
+        label: function() {
+            return this.name||"IOTA Streams Subscriber";
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="subscriber">
+    <div class="form-row">
+        <label for="node-input-seed"><i class="fa fa-tag"></i> Seed</label>
+        <input type="text" id="node-input-seed" placeholder="Seed">
+    </div>
+    <div class="form-row">
+        <label for="node-input-nodeUrl"><i class="fa fa-tag"></i> Node URL</label>
+        <input type="text" id="node-input-nodeUrl" placeholder="Node URL">
+    </div>
+    <div class="form-row">
+        <label for="node-input-announcementLink"><i class="fa fa-tag"></i> Announcement link</label>
+        <input type="text" id="node-input-announcementLink" placeholder="Announcement Link">
+    </div>
+</script>
+
+<script type="text/html" data-help-name="subscriber">
+    <p>IOTA Streams Subscriber</p>
+</script>
