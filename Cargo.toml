@@ -42,6 +42,7 @@ default-members = [
 exclude = [
     "bindings/c",
     "examples",
+    "playground",
 ]
 
 [features]

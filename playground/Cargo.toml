@@ -1,0 +1,8 @@
+[package]
+edition = "2018"
+name = "playground"
+version = "0.1.0"
+
+[dependencies]
+tokio = { version = "*", features = ["full"] }
+iota-streams = { path = ".."}
