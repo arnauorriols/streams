@@ -199,6 +199,14 @@ impl Client {
             .unwrap(),
         }
     }
+
+    pub fn set_send_options(&mut self, opt: SendOptions) {
+        self.send_opt = opt;
+    }
+
+    pub async fn get_link_details(&mut self, link: &TangleAddress) -> Result<Details> {
+        async_get_link_details(&self.client, link).await
+    }
 }
 
 impl Clone for Client {
@@ -215,23 +223,6 @@ impl Clone for Client {
             .unwrap(),
         }
     }
-}
-
-impl TransportOptions for Client {
-    type SendOptions = SendOptions;
-    fn get_send_options(&self) -> SendOptions {
-        self.send_opt.clone()
-    }
-    fn set_send_options(&mut self, opt: SendOptions) {
-        self.send_opt = opt;
-
-        // TODO
-        // self.client.set_send_options()
-    }
-
-    type RecvOptions = ();
-    fn get_recv_options(&self) {}
-    fn set_recv_options(&mut self, _opt: ()) {}
 }
 
 #[async_trait(?Send)]
@@ -254,13 +245,5 @@ impl Transport<TangleAddress, TangleMessage> for Client {
         } else {
             err!(MessageLinkNotFoundInTangle(link.to_string()))
         }
-    }
-}
-
-#[async_trait(?Send)]
-impl TransportDetails<TangleAddress> for Client {
-    type Details = Details;
-    async fn get_link_details(&mut self, link: &TangleAddress) -> Result<Self::Details> {
-        async_get_link_details(&self.client, link).await
     }
 }

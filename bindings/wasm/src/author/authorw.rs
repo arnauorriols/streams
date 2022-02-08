@@ -17,10 +17,7 @@ use core::cell::RefCell;
 use iota_streams::{
     app::{
         identifier::Identifier,
-        transport::{
-            tangle::client::Client as ApiClient,
-            TransportOptions,
-        },
+        transport::tangle::client::Client as ApiClient,
     },
     app_channels::api::{
         psk_from_seed,

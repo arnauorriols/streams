@@ -24,10 +24,7 @@ use iota_streams_app::transport::tangle::client::Details as ClientDetails;
 pub use message::Cursor;
 // Bring trait methods into scope publicly.
 pub use message::LinkGenerator as _;
-pub use transport::{
-    Transport as _,
-    TransportOptions as _,
-};
+pub use transport::Transport as _;
 
 pub use super::ChannelType;
 use super::DefaultF;

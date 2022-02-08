@@ -12,13 +12,9 @@ use crate::types::{
 use client_wasm::client::Client as RustWasmClient;
 
 use iota_streams::{
-    app::transport::{
-        tangle::client::{
-            iota_client::Client as RustClient,
-            Client as ApiClient,
-        },
-        TransportDetails,
-        TransportOptions,
+    app::transport::tangle::client::{
+        iota_client::Client as RustClient,
+        Client as ApiClient,
     },
     core::prelude::Rc,
 };
@@ -44,7 +40,7 @@ impl StreamsClient {
         StreamsClient(transport)
     }
 
-    pub fn get_link_details(mut self, link: &Address) -> js_sys::Promise {
+    pub fn get_link_details(self, link: &Address) -> js_sys::Promise {
         // wasm-bindgen does not honor Copy semantics in function parameters (see https://github.com/rustwasm/wasm-bindgen/issues/2204)
         // To workaround this limitation, we take a reference and copy it at the begining of the functions
         let link = *link;
@@ -53,6 +49,7 @@ impl StreamsClient {
         // The last resort is to convert manually to `JsValue` and then to `js_sys::Promise`
         wasm_bindgen_futures::future_to_promise(async move {
             self.0
+                .borrow_mut()
                 .get_link_details(link.as_inner())
                 .await
                 .map(Details::from)

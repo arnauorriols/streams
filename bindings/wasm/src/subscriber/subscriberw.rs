@@ -9,10 +9,7 @@ use crate::{
 
 use core::cell::RefCell;
 use iota_streams::{
-    app::transport::{
-        tangle::client::Client as ApiClient,
-        TransportOptions,
-    },
+    app::transport::tangle::client::Client as ApiClient,
     app_channels::api::{
         psk_from_seed,
         pskid_from_psk,

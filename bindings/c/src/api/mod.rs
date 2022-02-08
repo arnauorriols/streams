@@ -202,7 +202,6 @@ mod client_details {
             },
             Details as ApiDetails,
         },
-        TransportDetails as _,
     };
 
     #[repr(C)]

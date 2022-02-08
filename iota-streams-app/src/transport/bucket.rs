@@ -40,16 +40,6 @@ where
     }
 }
 
-impl<Link, Msg> TransportOptions for BucketTransport<Link, Msg> {
-    type SendOptions = ();
-    fn get_send_options(&self) {}
-    fn set_send_options(&mut self, _opt: ()) {}
-
-    type RecvOptions = ();
-    fn get_recv_options(&self) {}
-    fn set_recv_options(&mut self, _opt: ()) {}
-}
-
 #[async_trait(?Send)]
 impl<Link, Msg> Transport<Link, Msg> for BucketTransport<Link, Msg>
 where
@@ -82,16 +72,5 @@ where
         } else {
             err!(MessageLinkNotFoundInBucket(link.to_string()))?
         }
-    }
-}
-
-#[async_trait(?Send)]
-impl<Link, Msg> TransportDetails<Link> for BucketTransport<Link, Msg>
-where
-    Link: Eq + hash::Hash + Clone + core::marker::Send + core::marker::Sync + core::fmt::Display,
-{
-    type Details = ();
-    async fn get_link_details(&mut self, _opt: &Link) -> Result<Self::Details> {
-        Ok(())
     }
 }
