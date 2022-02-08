@@ -33,18 +33,27 @@ where
 
 impl<Link, Msg> BucketTransport<Link, Msg>
 where
-    Link: Eq + hash::Hash,
+    Link: Eq + hash::Hash + Clone + ToString,
+    Msg: Clone,
 {
     pub fn new() -> Self {
         Self { bucket: HashMap::new() }
+    }
+
+    async fn recv_messages(&mut self, link: &Link) -> Result<Vec<Msg>> {
+        if let Some(msgs) = self.bucket.get(link) {
+            Ok(msgs.clone())
+        } else {
+            err!(MessageLinkNotFoundInBucket(link.to_string()))
+        }
     }
 }
 
 #[async_trait(?Send)]
 impl<Link, Msg> Transport<Link, Msg> for BucketTransport<Link, Msg>
 where
-    Link: Eq + hash::Hash + Clone + core::marker::Send + core::marker::Sync + core::fmt::Display,
-    Msg: LinkedMessage<Link> + Clone + core::marker::Send + core::marker::Sync,
+    Link: ToString + Eq + hash::Hash + Clone,
+    Msg: LinkedMessage<Link> + Clone,
 {
     async fn send_message(&mut self, msg: &Msg) -> Result<()> {
         if let Some(msgs) = self.bucket.get_mut(msg.link()) {
@@ -53,14 +62,6 @@ where
         } else {
             self.bucket.insert(msg.link().clone(), vec![msg.clone()]);
             Ok(())
-        }
-    }
-
-    async fn recv_messages(&mut self, link: &Link) -> Result<Vec<Msg>> {
-        if let Some(msgs) = self.bucket.get(link) {
-            Ok(msgs.clone())
-        } else {
-            err!(MessageLinkNotFoundInBucket(link.to_string()))
         }
     }
 

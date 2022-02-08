@@ -207,6 +207,10 @@ impl Client {
     pub async fn get_link_details(&mut self, link: &TangleAddress) -> Result<Details> {
         async_get_link_details(&self.client, link).await
     }
+
+    async fn recv_messages(&mut self, link: &TangleAddress) -> Result<Vec<TangleMessage>> {
+        async_recv_messages(&self.client, link).await
+    }
 }
 
 impl Clone for Client {
@@ -230,11 +234,6 @@ impl Transport<TangleAddress, TangleMessage> for Client {
     /// Send a Streams message over the Tangle with default SendOptions.
     async fn send_message(&mut self, msg: &TangleMessage) -> Result<()> {
         async_send_message_with_options(&self.client, msg).await
-    }
-
-    /// Receive a message.
-    async fn recv_messages(&mut self, link: &TangleAddress) -> Result<Vec<TangleMessage>> {
-        async_recv_messages(&self.client, link).await
     }
 
     async fn recv_message(&mut self, link: &TangleAddress) -> Result<TangleMessage> {

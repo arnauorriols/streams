@@ -18,9 +18,6 @@ pub trait Transport<Link, Msg> {
     /// Send a message with default options.
     async fn send_message(&mut self, msg: &Msg) -> Result<()>;
 
-    /// Receive messages with default options.
-    async fn recv_messages(&mut self, link: &Link) -> Result<Vec<Msg>>;
-
     /// Receive a message with default options.
     async fn recv_message(&mut self, link: &Link) -> Result<Msg>;
 }
@@ -30,11 +27,6 @@ impl<Link, Msg, Tsp: Transport<Link, Msg>> Transport<Link, Msg> for Rc<RefCell<T
     // Send a message.
     async fn send_message(&mut self, msg: &Msg) -> Result<()> {
         self.borrow_mut().send_message(msg).await
-    }
-
-    // Receive messages with default options.
-    async fn recv_messages(&mut self, link: &Link) -> Result<Vec<Msg>> {
-        self.borrow_mut().recv_messages(link).await
     }
 
     // Receive a message with default options.
@@ -52,7 +44,6 @@ mod sync {
             Arc,
             Box,
             Mutex,
-            Vec,
         },
         Result,
     };
@@ -62,11 +53,6 @@ mod sync {
         // Send a message.
         async fn send_message(&mut self, msg: &Msg) -> Result<()> {
             self.lock().send_message(msg).await
-        }
-
-        // Receive messages with default options.
-        async fn recv_messages(&mut self, link: &Link) -> Result<Vec<Msg>> {
-            self.lock().recv_messages(link).await
         }
 
         // Receive a message with default options.
