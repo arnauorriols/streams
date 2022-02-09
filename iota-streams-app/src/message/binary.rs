@@ -55,6 +55,12 @@ impl From<BinaryBody> for Vec<u8> {
     }
 }
 
+impl AsRef<[u8]> for BinaryBody {
+    fn as_ref(&self) -> &[u8] {
+        self.as_bytes()
+    }
+}
+
 /// Binary network Message representation.
 pub type BinaryMessage<AbsLink> = GenericMessage<AbsLink, BinaryBody>;
 
