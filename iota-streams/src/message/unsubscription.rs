@@ -32,31 +32,14 @@ use async_trait::async_trait;
 // Streams
 use spongos::{
     ddml::{
-        commands::{
-            sizeof,
-            unwrap,
-            wrap,
-            Commit,
-            Join,
-            Mask,
-        },
+        commands::{sizeof, unwrap, wrap, Commit, Join, Mask},
         io,
     },
     Spongos,
 };
 use LETS::{
-    id::{
-        Identifier,
-        Identity,
-    },
-    message::{
-        ContentSign,
-        ContentSignSizeof,
-        ContentSizeof,
-        ContentUnwrap,
-        ContentVerify,
-        ContentWrap,
-    },
+    id::{Identifier, Identity},
+    message::{ContentSign, ContentSignSizeof, ContentSizeof, ContentUnwrap, ContentVerify, ContentWrap},
 };
 
 // Local

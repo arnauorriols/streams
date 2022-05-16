@@ -6,11 +6,7 @@ use textwrap::indent;
 // IOTA
 
 // Streams
-use iota_streams::{
-    SendResponse,
-    TransportMessage,
-    User,
-};
+use iota_streams::{SendResponse, TransportMessage, User};
 
 // Local
 

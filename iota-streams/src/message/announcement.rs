@@ -28,31 +28,14 @@ use crypto::keys::x25519;
 // Streams
 use spongos::{
     ddml::{
-        commands::{
-            sizeof,
-            unwrap,
-            wrap,
-            Absorb,
-            Commit,
-            Mask,
-        },
+        commands::{sizeof, unwrap, wrap, Absorb, Commit, Mask},
         io,
     },
     PRP,
 };
 use LETS::{
-    id::{
-        Identifier,
-        Identity,
-    },
-    message::{
-        ContentSign,
-        ContentSignSizeof,
-        ContentSizeof,
-        ContentUnwrap,
-        ContentVerify,
-        ContentWrap,
-    },
+    id::{Identifier, Identity},
+    message::{ContentSign, ContentSignSizeof, ContentSizeof, ContentUnwrap, ContentVerify, ContentWrap},
 };
 
 // Local

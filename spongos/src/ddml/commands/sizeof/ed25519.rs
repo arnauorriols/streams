@@ -1,15 +1,9 @@
 use anyhow::Result;
 use crypto::signatures::ed25519;
-use generic_array::{
-    typenum::U64,
-    GenericArray,
-};
+use generic_array::{typenum::U64, GenericArray};
 
 use crate::ddml::{
-    commands::{
-        sizeof::Context,
-        Ed25519,
-    },
+    commands::{sizeof::Context, Ed25519},
     modifiers::External,
     types::NBytes,
 };

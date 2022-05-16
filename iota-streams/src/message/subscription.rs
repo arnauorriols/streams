@@ -40,33 +40,15 @@ use crypto::keys::x25519;
 // Streams
 use spongos::{
     ddml::{
-        commands::{
-            sizeof,
-            unwrap,
-            wrap,
-            Absorb,
-            Join,
-            Mask,
-            X25519,
-        },
+        commands::{sizeof, unwrap, wrap, Absorb, Join, Mask, X25519},
         io,
         types::NBytes,
     },
     Spongos,
 };
 use LETS::{
-    id::{
-        Identifier,
-        Identity,
-    },
-    message::{
-        ContentSign,
-        ContentSignSizeof,
-        ContentSizeof,
-        ContentUnwrap,
-        ContentVerify,
-        ContentWrap,
-    },
+    id::{Identifier, Identity},
+    message::{ContentSign, ContentSignSizeof, ContentSizeof, ContentUnwrap, ContentVerify, ContentWrap},
 };
 
 pub(crate) struct Wrap<'a> {

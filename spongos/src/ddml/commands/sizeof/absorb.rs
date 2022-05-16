@@ -1,25 +1,10 @@
 use anyhow::Result;
-use crypto::{
-    keys::x25519,
-    signatures::ed25519,
-};
+use crypto::{keys::x25519, signatures::ed25519};
 
 use crate::ddml::{
-    commands::{
-        sizeof::Context,
-        Absorb,
-    },
+    commands::{sizeof::Context, Absorb},
     modifiers::External,
-    types::{
-        Bytes,
-        Maybe,
-        NBytes,
-        Size,
-        Uint16,
-        Uint32,
-        Uint64,
-        Uint8,
-    },
+    types::{Bytes, Maybe, NBytes, Size, Uint16, Uint32, Uint64, Uint8},
 };
 
 /// All Uint8 values are encoded with 1 byte.

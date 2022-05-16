@@ -45,14 +45,5 @@ mod message;
 /// [`User`] API.
 mod api;
 
-pub use api::{
-    message::Message,
-    send_response::SendResponse,
-    user::User,
-};
-pub use LETS::{
-    address::Address,
-    id,
-    message::TransportMessage,
-    transport,
-};
+pub use api::{message::Message, send_response::SendResponse, user::User};
+pub use LETS::{address::Address, id, message::TransportMessage, transport};

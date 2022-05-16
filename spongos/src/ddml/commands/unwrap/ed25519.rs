@@ -1,21 +1,12 @@
 use core::convert::TryInto;
 
-use anyhow::{
-    ensure,
-    Result,
-};
+use anyhow::{ensure, Result};
 use crypto::signatures::ed25519;
-use generic_array::{
-    typenum::U64,
-    GenericArray,
-};
+use generic_array::{typenum::U64, GenericArray};
 
 use crate::{
     ddml::{
-        commands::{
-            unwrap::Context,
-            Ed25519,
-        },
+        commands::{unwrap::Context, Ed25519},
         io,
         modifiers::External,
         types::NBytes,

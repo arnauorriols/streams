@@ -1,6 +1,7 @@
 //! `Keyload` message _wrapping_ and _unwrapping_.
 //!
-//! The `Keyload` message is the means to securely exchange the encryption key of a branch with a set of subscribers.
+//! The `Keyload` message is the means to securely exchange the encryption key of a branch with a
+//! set of subscribers.
 //!
 //! ```ddml
 //! message Keyload {
@@ -33,10 +34,7 @@
 //! }
 //! ```
 // Rust
-use alloc::{
-    boxed::Box,
-    vec::Vec,
-};
+use alloc::{boxed::Box, vec::Vec};
 use core::iter::IntoIterator;
 
 // 3rd-party
@@ -49,39 +47,17 @@ use crypto::keys::x25519;
 // Streams
 use spongos::{
     ddml::{
-        commands::{
-            sizeof,
-            unwrap,
-            wrap,
-            Absorb,
-            Commit,
-            Fork,
-            Join,
-            Mask,
-        },
+        commands::{sizeof, unwrap, wrap, Absorb, Commit, Fork, Join, Mask},
         io,
         modifiers::External,
-        types::{
-            NBytes,
-            Size,
-        },
+        types::{NBytes, Size},
     },
     Spongos,
 };
 use LETS::{
-    id::{
-        Identifier,
-        Identity,
-        Permissioned,
-    },
+    id::{Identifier, Identity, Permissioned},
     message::{
-        self,
-        ContentDecrypt,
-        ContentEncrypt,
-        ContentEncryptSizeOf,
-        ContentSign,
-        ContentSignSizeof,
-        ContentVerify,
+        self, ContentDecrypt, ContentEncrypt, ContentEncryptSizeOf, ContentSign, ContentSignSizeof, ContentVerify,
     },
 };
 

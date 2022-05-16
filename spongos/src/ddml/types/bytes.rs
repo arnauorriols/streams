@@ -1,11 +1,9 @@
 use core::fmt;
 
-use alloc::{
-    string::String,
-    vec::Vec,
-};
+use alloc::{string::String, vec::Vec};
 
-/// Variable-size array of bytes, the size is not known at compile time and is encoded in trinary representation.
+/// Variable-size array of bytes, the size is not known at compile time and is encoded in trinary
+/// representation.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Bytes<T>(T);
 
