@@ -44,5 +44,8 @@ mod message;
 /// [`User`] API.
 mod api;
 
+#[doc = include_str!("../documentation/quickstart.md")]
+pub mod quickstart_guide {}
+
 pub use api::{message::Message, send_response::SendResponse, user::User};
 pub use lets::{address::Address, id, message::TransportMessage, transport};
