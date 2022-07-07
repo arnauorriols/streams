@@ -2,21 +2,24 @@
 use alloc::{boxed::Box, vec::Vec};
 
 // 3rd-party
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, ensure, Result};
 use async_trait::async_trait;
 
 // IOTA
 
 // Streams
 use lets::{
-    address::Address,
+    address::{Address, AppAddr, MsgId},
     id::{Identity, Psk, PskId},
-    message::TransportMessage,
+    message::{Message, Topic, TransportMessage, HDF, PCF},
     transport::Transport,
 };
 
 // Local
-use crate::api::user::User;
+use crate::{
+    api::user::{self, User},
+    message::{announcement, message_types},
+};
 
 /// Builder instance for a Streams User
 pub struct UserBuilder<T> {
@@ -152,8 +155,65 @@ impl<T> UserBuilder<T> {
             .transport
             .ok_or_else(|| anyhow!("transport not specified, cannot build User without Transport"))?;
 
-        Ok(User::new(self.id, self.psks, transport))
+    //     let stream_base_address = AppAddr::gen(&identifier, &topic);
+    //     let stream_rel_address = MsgId::gen(stream_base_address, &identifier, &topic, user::ANN_MESSAGE_NUM);
+    //     let stream_address = Address::new(stream_base_address, stream_rel_address);
+        
+        Ok(User::new(self.id, stream_address, stream_topic, author_identifier, self.psks, transport))
     }
+
+    pub fn build_as_stream_author(self, stream_topic: Topic) -> Result<User<T>> {
+        let transport = self
+            .transport
+            .ok_or_else(|| anyhow!("transport not specified, cannot build User without Transport"))?;
+
+        let identity = self
+            .id
+            .ok_or_else(|| anyhow!("user must have an identity to create a stream"))?;
+        
+        Ok(User::new_as_stream_author(identity, stream_topic, self.psks, transport))
+    }
+
+    // pub async fn create_stream<Top: Into<Topic>>(&mut self, topic: Top) -> Result<User<T>>
+    // where
+    //     T: for<'a> Transport<'a, Msg = TransportMessage>,
+    // {
+    //     let transport = self
+    //         .transport
+    //         .ok_or_else(|| anyhow!("transport not specified, cannot build user without transport"))?;
+
+    //     let identity = self
+    //         .id
+    //         .ok_or_else(|| anyhow!("user must have an identity to create a stream"))?;
+    //     let identifier = identity.to_identifier();
+    //     // Convert topic
+    //     let topic = topic.into();
+    //     // Generate stream address
+    //     let stream_base_address = AppAddr::gen(&identifier, &topic);
+    //     let stream_rel_address = MsgId::gen(stream_base_address, &identifier, &topic, user::ANN_MESSAGE_NUM);
+    //     let stream_address = Address::new(stream_base_address, stream_rel_address);
+
+    //     // Prepare HDF and PCF
+    //     let header = HDF::new(
+    //         message_types::ANNOUNCEMENT,
+    //         user::ANN_MESSAGE_NUM,
+    //         identifier.clone(),
+    //         topic.clone(),
+    //     )?;
+    //     let content = PCF::new_final_frame().with_content(announcement::Wrap::new(&identity));
+
+    //     // Wrap message
+    //     let (transport_msg, spongos) = Message::new(header, content).wrap().await?;
+
+    //     // Attempt to send message
+    //     ensure!(
+    //         // TODO: only on not-found error
+    //         transport.recv_message(stream_address).await.is_err(),
+    //         anyhow!("stream with address '{}' already exists", stream_address)
+    //     );
+    //     let send_response = transport.send_message(stream_address, transport_msg).await?;
+    //     Ok(User::new(Some(identity), stream_address, topic, self.psks, transport))
+    // }
 
     /// Recover a user instance from the builder parameters.
     ///

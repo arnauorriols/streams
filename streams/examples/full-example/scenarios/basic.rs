@@ -29,20 +29,28 @@ pub(crate) async fn example<T: GenericTransport>(transport: T, author_seed: &str
         .with_identity(Ed25519::from_seed(author_seed))
         .with_transport(transport.clone())
         .with_psk(psk.to_pskid(), psk)
-        .build()?;
+        .as_stream_author(BASE_BRANCH)
+        .build()
+        .await?;
 
     let mut subscriber_a = User::builder()
         .with_identity(Ed25519::from_seed("SUBSCRIBERA9SEED"))
         .with_transport(transport.clone())
-        .build()?;
+        .with_stream(author.stream_address())
+        .build()
+        .await?;
     let mut subscriber_b = User::builder()
         .with_identity(Ed25519::from_seed("SUBSCRIBERB9SEED"))
         .with_transport(transport.clone())
-        .build()?;
+        .as_subscriber(author.identifier(), BASE_BRANCH)
+        .build()
+        .await?;
     let mut subscriber_c = User::builder()
         .with_psk(psk.to_pskid(), psk)
         .with_transport(transport.clone())
-        .build()?;
+        .as_subscriber(author.identifier(), BASE_BRANCH)
+        .build()
+        .await?;
 
     // Confirm that users have id's
     let _author_id = author.identifier().expect("author should have identifier");

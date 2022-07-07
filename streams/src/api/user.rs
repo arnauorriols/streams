@@ -46,7 +46,7 @@ use crate::{
     },
 };
 
-const ANN_MESSAGE_NUM: usize = 0; // Announcement is always the first message of authors
+pub(crate) const ANN_MESSAGE_NUM: usize = 0; // Announcement is always the first message of authors
 const SUB_MESSAGE_NUM: usize = 0; // Subscription is always the first message of subscribers
 const INIT_MESSAGE_NUM: usize = 1; // First non-reserved message number
 
@@ -58,9 +58,9 @@ struct State {
     /// Address of the stream announcement message
     ///
     /// None if channel is not created or user is not subscribed.
-    stream_address: Option<Address>,
+    stream_address: Address,
 
-    author_identifier: Option<Identifier>,
+    stream_author: Identifier,
 
     /// Users' trusted public keys together with additional sequencing info: (msgid, seq_no) mapped
     /// by branch topic Vec.
@@ -90,7 +90,14 @@ impl User<()> {
 }
 
 impl<T> User<T> {
-    pub(crate) fn new<Psks>(user_id: Option<Identity>, psks: Psks, transport: T) -> Self
+    pub(crate) fn new<Psks>(
+        user_id: Option<Identity>,
+        stream_address: Address,
+        stream_topic: Topic,
+        author: Identifier,
+        psks: Psks,
+        transport: T,
+    ) -> Self
     where
         Psks: IntoIterator<Item = (PskId, Psk)>,
     {
@@ -106,6 +113,16 @@ impl<T> User<T> {
             exchange_keys.insert(id.to_identifier(), id._ke_sk().public_key());
         }
 
+        let spongos_store = HashMap::new();
+        spongos_store.insert()
+
+        // self.state.cursor_store.new_branch(stream_topic);
+        // self.state
+        //     .cursor_store
+        //     .insert_cursor(&topic, author, ANN_MESSAGE_NUM);
+
+        // Commit Author Identifier and Stream Address to store
+
         Self {
             transport,
             state: State {
@@ -113,10 +130,10 @@ impl<T> User<T> {
                 cursor_store: CursorStore::new(),
                 psk_store,
                 exchange_keys,
-                spongos_store: Default::default(),
-                stream_address: None,
-                author_identifier: None,
-                base_branch: Default::default(),
+                spongos_store,
+                stream_address,
+                stream_author: author,
+                base_branch: stream_topic,
             },
         }
     }
@@ -150,8 +167,12 @@ impl<T> User<T> {
         &self.state.base_branch
     }
 
-    pub(crate) fn stream_address(&self) -> Option<Address> {
+    pub(crate) fn stream_address(&self) -> Address {
         self.state.stream_address
+    }
+
+    pub(crate) fn stream_author(&self) -> &Identifier {
+        &self.state.stream_author
     }
 
     pub fn transport(&self) -> &T {
@@ -253,10 +274,10 @@ impl<T> User<T> {
 
         // Update branch links
         self.set_latest_link(&topic, address.relative());
-        self.state.author_identifier = Some(author_id.clone());
+        self.state.stream_author = author_id.clone();
         self.state.exchange_keys.insert(author_id, author_ke_pk);
         self.state.base_branch = topic;
-        self.state.stream_address = Some(address);
+        self.state.stream_address = address;
 
         Ok(Message::from_lets_message(address, message))
     }
@@ -373,10 +394,6 @@ impl<T> User<T> {
     }
 
     async fn handle_keyload(&mut self, address: Address, preparsed: PreparsedMessage) -> Result<Message> {
-        let stream_address = self
-            .stream_address()
-            .ok_or_else(|| anyhow!("before handling a keyload one must have received a stream announcement first"))?;
-
         // From the point of view of cursor tracking, the message exists, regardless of the validity or
         // accessibility to its content. Therefore we must update the cursor of the publisher before
         // handling the message
@@ -388,11 +405,10 @@ impl<T> User<T> {
 
         // Unwrap message
         // Ok to unwrap since an author identifier is set at the same time as the stream address
-        let author_identifier = self.state.author_identifier.as_ref().unwrap();
         let mut announcement_spongos = self
             .state
             .spongos_store
-            .get(&stream_address.relative())
+            .get(&self.stream_address().relative())
             .copied()
             .expect("a subscriber that has received an stream announcement must keep its spongos in store");
 
@@ -400,7 +416,7 @@ impl<T> User<T> {
         let keyload = keyload::Unwrap::new(
             &mut announcement_spongos,
             self.state.user_id.as_ref(),
-            author_identifier,
+            &self.state.stream_author,
             &self.state.psk_store,
         );
         let (message, spongos) = preparsed.unwrap(keyload).await?;
@@ -576,61 +592,6 @@ where
     T: for<'a> Transport<'a, Msg = TransportMessage, SendResponse = TSR>,
 {
     /// Prepare channel Announcement message.
-    pub async fn create_stream<Top: Into<Topic>>(&mut self, topic: Top) -> Result<SendResponse<TSR>> {
-        // Check conditions
-        if let Some(appaddr) = self.stream_address() {
-            bail!(
-                "Cannot create a channel, user is already registered to channel {}",
-                appaddr
-            );
-        }
-        // Confirm user has identity
-        let identity = self.identity()?;
-        let identifier = identity.to_identifier();
-        // Convert topic
-        let topic = topic.into();
-        // Generate stream address
-        let stream_base_address = AppAddr::gen(&identifier, &topic);
-        let stream_rel_address = MsgId::gen(stream_base_address, &identifier, &topic, INIT_MESSAGE_NUM);
-        let stream_address = Address::new(stream_base_address, stream_rel_address);
-
-        // Prepare HDF and PCF
-        let header = HDF::new(
-            message_types::ANNOUNCEMENT,
-            ANN_MESSAGE_NUM,
-            identity.to_identifier(),
-            topic.clone(),
-        )?;
-        let content = PCF::new_final_frame().with_content(announcement::Wrap::new(identity));
-
-        // Wrap message
-        let (transport_msg, spongos) = LetsMessage::new(header, content).wrap().await?;
-
-        // Attempt to send message
-        ensure!(
-            self.transport.recv_message(stream_address).await.is_err(),
-            anyhow!("stream with address '{}' already exists", stream_address)
-        );
-        let send_response = self.transport.send_message(stream_address, transport_msg).await?;
-
-        // If a message has been sent successfully, insert the base branch into store
-        self.state.cursor_store.new_branch(topic.clone());
-        // Commit message to stores
-        self.state
-            .cursor_store
-            .insert_cursor(&topic, identifier.clone(), INIT_MESSAGE_NUM);
-        self.state.spongos_store.insert(stream_address.relative(), spongos);
-
-        // Update branch links
-        self.set_latest_link(&topic, stream_address.relative());
-
-        // Commit Author Identifier and Stream Address to store
-        self.state.stream_address = Some(stream_address);
-        self.state.author_identifier = Some(identifier);
-        self.state.base_branch = topic.clone();
-
-        Ok(SendResponse::new(stream_address, send_response))
-    }
 
     /// Prepare new branch Announcement message
     pub async fn new_branch(
@@ -638,10 +599,6 @@ where
         from_topic: impl Into<Topic>,
         to_topic: impl Into<Topic>,
     ) -> Result<SendResponse<TSR>> {
-        // Check conditions
-        let stream_address = self
-            .stream_address()
-            .ok_or_else(|| anyhow!("before starting a new branch, the stream must be created"))?;
         // Confirm user has identity
         let user_id = self.identity()?;
         let identifier = user_id.to_identifier();
@@ -656,8 +613,8 @@ where
         let user_cursor = self
             .next_cursor(&prev_topic)
             .map_err(|_| anyhow!("No cursor found in base branch"))?;
-        let msgid = MsgId::gen(stream_address.base(), &identifier, &prev_topic, user_cursor);
-        let address = Address::new(stream_address.base(), msgid);
+        let msgid = MsgId::gen(self.stream_address().base(), &identifier, &prev_topic, user_cursor);
+        let address = Address::new(self.stream_address().base(), msgid);
 
         // Prepare HDF and PCF
         // Spongos must be copied because wrapping mutates it
@@ -708,18 +665,14 @@ where
 
     /// Prepare Subscribe message.
     pub async fn subscribe(&mut self) -> Result<SendResponse<TSR>> {
-        // Check conditions
-        let stream_address = self
-            .stream_address()
-            .ok_or_else(|| anyhow!("before subscribing one must receive the announcement of a stream first"))?;
         // Confirm user has identity
         let user_id = self.identity()?;
         let identifier = user_id.to_identifier();
         // Get base branch topic
         let base_branch = &self.state.base_branch;
         // Link message to channel announcement
-        let link_to = stream_address.relative();
-        let rel_address = MsgId::gen(stream_address.base(), &identifier, base_branch, SUB_MESSAGE_NUM);
+        let link_to = self.stream_address().relative();
+        let rel_address = MsgId::gen(self.stream_address().base(), &identifier, base_branch, SUB_MESSAGE_NUM);
 
         // Prepare HDF and PCF
         // Spongos must be copied because wrapping mutates it
@@ -732,10 +685,9 @@ where
         let unsubscribe_key = StdRng::from_entropy().gen();
         let author_ke_pk = self
             .state
-            .author_identifier
-            .as_ref()
-            .and_then(|author_id| self.state.exchange_keys.get(author_id))
-            .expect("a user that already have an stream address must know the author identifier");
+            .exchange_keys
+            .get(self.stream_author())
+            .expect("the author of a stream should always have a key-exchange key-pair");
         let content = PCF::new_final_frame().with_content(subscription::Wrap::new(
             &mut linked_msg_spongos,
             unsubscribe_key,
@@ -754,7 +706,7 @@ where
         let (transport_msg, _spongos) = LetsMessage::new(header, content).wrap().await?;
 
         // Attempt to send message
-        let message_address = Address::new(stream_address.base(), rel_address);
+        let message_address = Address::new(self.stream_address().base(), rel_address);
         ensure!(
             self.transport.recv_message(message_address).await.is_err(),
             anyhow!("there's already a message with address '{}'", message_address)
@@ -769,10 +721,6 @@ where
     }
 
     pub async fn unsubscribe(&mut self) -> Result<SendResponse<TSR>> {
-        // Check conditions
-        let stream_address = self.stream_address().ok_or_else(|| {
-            anyhow!("before sending a subscription one must receive the announcement of a stream first")
-        })?;
         // Confirm user has identity
         let user_id = self.identity()?;
         let identifier = user_id.to_identifier();
@@ -785,7 +733,7 @@ where
 
         // Update own's cursor
         let new_cursor = self.next_cursor(base_branch)?;
-        let rel_address = MsgId::gen(stream_address.base(), &identifier, base_branch, new_cursor);
+        let rel_address = MsgId::gen(self.stream_address().base(), &identifier, base_branch, new_cursor);
 
         // Prepare HDF and PCF
         // Spongos must be copied because wrapping mutates it
@@ -808,7 +756,7 @@ where
         let (transport_msg, spongos) = LetsMessage::new(header, content).wrap().await?;
 
         // Attempt to send message
-        let message_address = Address::new(stream_address.base(), rel_address);
+        let message_address = Address::new(self.stream_address().base(), rel_address);
         ensure!(
             self.transport.recv_message(message_address).await.is_err(),
             anyhow!("there's already a message with address '{}'", message_address)
@@ -834,10 +782,6 @@ where
         Top: Into<Topic>,
         Psks: IntoIterator<Item = PskId>,
     {
-        // Check conditions
-        let stream_address = self
-            .stream_address()
-            .ok_or_else(|| anyhow!("before sending a keyload one must create a stream first"))?;
         // Confirm user has identity
         let user_id = self.identity()?;
         let identifier = user_id.to_identifier();
@@ -849,14 +793,14 @@ where
             .ok_or_else(|| anyhow!("No latest message found in branch <{}>", topic))?;
         // Update own's cursor
         let new_cursor = self.next_cursor(&topic)?;
-        let rel_address = MsgId::gen(stream_address.base(), &identifier, &topic, new_cursor);
+        let rel_address = MsgId::gen(self.stream_address().base(), &identifier, &topic, new_cursor);
 
         // Prepare HDF and PCF
         // All Keyload messages will attach to stream Announcement message spongos
         let mut announcement_msg_spongos = self
             .state
             .spongos_store
-            .get(&stream_address.relative())
+            .get(&self.stream_address().relative())
             .copied()
             .expect("a subscriber that has received an stream announcement must keep its spongos in store");
 
@@ -902,7 +846,7 @@ where
         let (transport_msg, spongos) = LetsMessage::new(header, content).wrap().await?;
 
         // Attempt to send message
-        let message_address = Address::new(stream_address.base(), rel_address);
+        let message_address = Address::new(self.stream_address().base(), rel_address);
         ensure!(
             self.transport.recv_message(message_address).await.is_err(),
             anyhow!("there's already a message with address '{}'", message_address)
@@ -969,10 +913,6 @@ where
         P: AsRef<[u8]>,
         Top: Into<Topic>,
     {
-        // Check conditions
-        let stream_address = self.stream_address().ok_or_else(|| {
-            anyhow!("before sending a signed packet one must receive the announcement of a stream first")
-        })?;
         let user_id = self.identity()?;
         let identifier = user_id.to_identifier();
         // Check Topic
@@ -983,7 +923,7 @@ where
             .ok_or_else(|| anyhow!("No latest link found in branch <{}>", topic))?;
         // Update own's cursor
         let new_cursor = self.next_cursor(&topic)?;
-        let rel_address = MsgId::gen(stream_address.base(), &identifier, &topic, new_cursor);
+        let rel_address = MsgId::gen(self.stream_address().base(), &identifier, &topic, new_cursor);
 
         // Prepare HDF and PCF
         // Spongos must be copied because wrapping mutates it
@@ -1011,7 +951,7 @@ where
         let (transport_msg, spongos) = LetsMessage::new(header, content).wrap().await?;
 
         // Attempt to send message
-        let message_address = Address::new(stream_address.base(), rel_address);
+        let message_address = Address::new(self.stream_address().base(), rel_address);
         ensure!(
             self.transport.recv_message(message_address).await.is_err(),
             anyhow!("there's already a message with address '{}'", message_address)
@@ -1039,10 +979,6 @@ where
         P: AsRef<[u8]>,
         Top: Into<Topic>,
     {
-        // Check conditions
-        let stream_address = self.stream_address().ok_or_else(|| {
-            anyhow!("before sending a tagged packet one must receive the announcement of a stream first")
-        })?;
         let user_id = self.identity()?;
         let identifier = user_id.to_identifier();
         // Check Topic
@@ -1054,7 +990,7 @@ where
 
         // Update own's cursor
         let new_cursor = self.next_cursor(&topic)?;
-        let rel_address = MsgId::gen(stream_address.base(), &identifier, &topic, new_cursor);
+        let rel_address = MsgId::gen(self.stream_address().base(), &identifier, &topic, new_cursor);
 
         // Prepare HDF and PCF
         // Spongos must be copied because wrapping mutates it
@@ -1081,7 +1017,7 @@ where
         let (transport_msg, spongos) = LetsMessage::new(header, content).wrap().await?;
 
         // Attempt to send message
-        let message_address = Address::new(stream_address.base(), rel_address);
+        let message_address = Address::new(self.stream_address().base(), rel_address);
         ensure!(
             self.transport.recv_message(message_address).await.is_err(),
             anyhow!("there's already a message with address '{}'", message_address)
@@ -1101,8 +1037,8 @@ where
 impl ContentSizeof<State> for sizeof::Context {
     async fn sizeof(&mut self, user_state: &State) -> Result<&mut Self> {
         self.mask(Maybe::new(user_state.user_id.as_ref()))?
-            .mask(Maybe::new(user_state.stream_address.as_ref()))?
-            .mask(Maybe::new(user_state.author_identifier.as_ref()))?
+            .mask(&user_state.stream_address)?
+            .mask(&user_state.stream_author)?
             .mask(&user_state.base_branch)?;
 
         let amount_spongos = user_state.spongos_store.len();
@@ -1158,8 +1094,8 @@ impl ContentSizeof<State> for sizeof::Context {
 impl<'a> ContentWrap<State> for wrap::Context<&'a mut [u8]> {
     async fn wrap(&mut self, user_state: &mut State) -> Result<&mut Self> {
         self.mask(Maybe::new(user_state.user_id.as_ref()))?
-            .mask(Maybe::new(user_state.stream_address.as_ref()))?
-            .mask(Maybe::new(user_state.author_identifier.as_ref()))?
+            .mask(&user_state.stream_address)?
+            .mask(&user_state.stream_author)?
             .mask(&user_state.base_branch)?;
 
         let amount_spongos = user_state.spongos_store.len();
@@ -1215,8 +1151,8 @@ impl<'a> ContentWrap<State> for wrap::Context<&'a mut [u8]> {
 impl<'a> ContentUnwrap<State> for unwrap::Context<&'a [u8]> {
     async fn unwrap(&mut self, user_state: &mut State) -> Result<&mut Self> {
         self.mask(Maybe::new(&mut user_state.user_id))?
-            .mask(Maybe::new(&mut user_state.stream_address))?
-            .mask(Maybe::new(&mut user_state.author_identifier))?
+            .mask(&mut user_state.stream_address)?
+            .mask(&mut user_state.stream_author)?
             .mask(&mut user_state.base_branch)?;
 
         let mut amount_spongos = Size::default();
