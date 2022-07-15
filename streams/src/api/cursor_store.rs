@@ -19,18 +19,20 @@ impl CursorStore {
         Default::default()
     }
 
-    pub(crate) fn new_branch(&mut self, topic: Topic) -> bool {
-        self.0.insert(topic, InnerCursorStore::default()).is_none()
+    pub(crate) fn new_branch(&mut self, topic: Topic) -> &mut InnerCursorStore {
+        self.0.entry(topic).insert(Default::default()).into_mut()
+    }
+
+    pub(crate) fn branch(&self, topic: &Topic) -> Option<&InnerCursorStore> {
+        self.0.get(topic)
+    }
+
+    pub(crate) fn branch_mut(&mut self, topic: &Topic) -> Option<&mut InnerCursorStore> {
+        self.0.get_mut(topic)
     }
 
     pub(crate) fn topics(&self) -> impl Iterator<Item = &Topic> + ExactSizeIterator {
         self.0.keys()
-    }
-
-    pub(crate) fn is_cursor_tracked(&self, topic: &Topic, id: &Identifier) -> bool {
-        self.0
-            .get(topic)
-            .map_or(false, |branch| branch.cursors.contains_key(id))
     }
 
     pub(crate) fn remove(&mut self, id: &Identifier) -> bool {
@@ -48,29 +50,7 @@ impl CursorStore {
             .flat_map(|(topic, branch)| branch.cursors.iter().map(move |(id, cursor)| (topic, id, *cursor)))
     }
 
-    pub(crate) fn insert_cursor(&mut self, topic: &Topic, id: Identifier, cursor: usize) -> Option<usize> {
-        if let Some(branch) = self.0.get_mut(topic) {
-            return branch.cursors.insert(id, cursor);
-        }
-        None
-    }
-
-    pub(crate) fn set_latest_link(&mut self, topic: &Topic, latest_link: MsgId) -> Option<InnerCursorStore> {
-        match self.0.get_mut(topic) {
-            Some(branch) => {
-                branch.latest_link = latest_link;
-                None
-            }
-            None => {
-                let branch = InnerCursorStore {
-                    latest_link,
-                    ..Default::default()
-                };
-                self.0.insert(topic.clone(), branch)
-            }
-        }
-    }
-
+    // TODO: CHANGE RETURN VALUE
     pub(crate) fn get_latest_link(&self, topic: &Topic) -> Option<MsgId> {
         self.0.get(topic).map(|branch| branch.latest_link)
     }
@@ -80,6 +60,29 @@ impl CursorStore {
 pub(crate) struct InnerCursorStore {
     cursors: HashMap<Identifier, usize>,
     latest_link: MsgId,
+}
+
+impl InnerCursorStore {
+    pub(crate) fn latest_link(&self) -> &MsgId {
+        &self.latest_link
+    }
+
+    pub(crate) fn set_latest_link(&mut self, latest_link: MsgId) {
+        self.latest_link = latest_link;
+    }
+
+    pub(crate) fn cursor(&self, identifier: &Identifier) -> Option<usize> {
+        self.cursors.get(identifier).copied()
+    }
+
+    // USE HANDLER PATTERN TO ENSURE CURSOR AND LATEST_LINK ARE UPDATED
+    pub(crate) fn set_cursor(&mut self, id: Identifier, cursor: usize) {
+        self.cursors.insert(id, cursor);
+    }
+
+    pub(crate) fn contains_cursor(&self, id: &Identifier) -> bool {
+        self.cursors.contains_key(id)
+    }
 }
 
 impl fmt::Debug for InnerCursorStore {
@@ -122,8 +125,14 @@ mod tests {
         branch_store.new_branch(topic_1.clone());
         branch_store.new_branch(topic_2.clone());
 
-        branch_store.insert_cursor(&topic_1, identifier.clone(), 10);
-        branch_store.insert_cursor(&topic_2, identifier.clone(), 20);
+        branch_store
+            .branch_mut(&topic_1)
+            .unwrap()
+            .set_cursor(identifier.clone(), 10);
+        branch_store
+            .branch_mut(&topic_2)
+            .unwrap()
+            .set_cursor(identifier.clone(), 20);
 
         branch_store.remove(&identifier);
 

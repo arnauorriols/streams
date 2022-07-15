@@ -1,8 +1,9 @@
 // Rust
 use alloc::{boxed::Box, collections::BTreeMap, vec::Vec};
+use core::any::Any;
 
 // 3rd-party
-use anyhow::{anyhow, Result};
+use anyhow::anyhow;
 use async_trait::async_trait;
 
 // IOTA
@@ -41,7 +42,7 @@ where
 {
     type Msg = Msg;
     type SendResponse = Msg;
-    async fn send_message(&mut self, addr: Address, msg: Msg) -> Result<Msg>
+    async fn send_message(&mut self, addr: Address, msg: Msg) -> Result<Msg, Box<dyn Any + Send + Sync>>
     where
         Self::Msg: 'async_trait,
     {
@@ -49,10 +50,9 @@ where
         Ok(msg)
     }
 
-    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Msg>> {
-        self.bucket
-            .get(&address)
-            .cloned()
-            .ok_or_else(|| anyhow!("No messages found at address {}", address))
+    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Msg>, Box<dyn Any + Send + Sync>> {
+        self.bucket.get(&address).cloned().ok_or_else(|| {
+            Box::new(anyhow!("No messages found at address {}", address)) as Box<dyn Any + Send + Sync>
+        })
     }
 }

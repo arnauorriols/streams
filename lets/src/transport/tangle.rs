@@ -1,12 +1,13 @@
 // Rust
 use alloc::{boxed::Box, vec::Vec};
 use core::{
+    any::Any,
     convert::{TryFrom, TryInto},
     marker::PhantomData,
 };
 
 // 3rd-party
-use anyhow::{anyhow, ensure, Result};
+use anyhow::{anyhow, ensure};
 use async_trait::async_trait;
 use futures::{
     future::{ready, try_join_all},
@@ -35,12 +36,14 @@ impl<Message, SendResponse> Client<Message, SendResponse> {
     }
 
     // Shortcut to create an instance of Client connecting to a node with default parameters
-    pub async fn for_node(node_url: &str) -> Result<Client<Message, SendResponse>> {
+    pub async fn for_node(node_url: &str) -> Result<Client<Message, SendResponse>, Box<dyn Any + Send + Sync>> {
         Ok(Self(
             iota_client::ClientBuilder::new()
-                .with_node(node_url)?
+                .with_node(node_url)
+                .map_err(|e| Box::new(anyhow::Error::from(e)) as Box<dyn Any + Send + Sync>)?
                 .with_local_pow(true)
                 .finish()
+                .map_err(|e| Box::new(anyhow::Error::from(e)) as Box<dyn Any + Send + Sync>)
                 .await?,
             PhantomData,
         ))
@@ -64,7 +67,7 @@ where
     type Msg = Message;
     type SendResponse = SendResponse;
 
-    async fn send_message(&mut self, address: Address, msg: Message) -> Result<SendResponse>
+    async fn send_message(&mut self, address: Address, msg: Message) -> Result<SendResponse, Box<dyn Any + Send + Sync>>
     where
         Message: 'async_trait,
     {
@@ -73,29 +76,38 @@ where
             .with_index(address.to_msg_index())
             .with_data(msg.into())
             .finish()
+            .map_err(|e| Box::new(e) as Box<dyn Any + Send + Sync>)
             .await?
             .try_into()
+            .map_err(|e| Box::new(e) as Box<dyn Any + Send + Sync>)
     }
 
-    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Message>> {
-        let msg_ids = self.client().get_message().index(address.to_msg_index()).await?;
-        ensure!(!msg_ids.is_empty(), "no message found at index '{}'", address);
+    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Message>, Box<dyn Any + Send + Sync>> {
+        let msg_ids = self
+            .client()
+            .get_message()
+            .index(address.to_msg_index())
+            .await
+            .map_err(|e| Box::new(e) as Box<dyn Any + Send + Sync>)?;
+        if msg_ids.is_empty() {
+            return Err(Box::new(anyhow!("no message found at index '{}'", address)));
+        }
 
-        let msgs = try_join_all(msg_ids.iter().map(|msg| {
+        try_join_all(msg_ids.iter().map(|msg| {
             self.client()
                 .get_message()
                 .data(msg)
                 .map_err(Into::into)
                 .and_then(|iota_message| ready(iota_message.try_into()))
         }))
-        .await?;
-        Ok(msgs)
+        .map_err(|e| Box::new(e) as Box<dyn Any + Send + Sync>)
+        .await
     }
 }
 
 impl TryFrom<IotaMessage> for TransportMessage {
     type Error = anyhow::Error;
-    fn try_from(message: IotaMessage) -> Result<Self> {
+    fn try_from(message: IotaMessage) -> Result<Self, Self::Error> {
         if let Some(Payload::Indexation(indexation)) = message.payload() {
             Ok(Self::new(indexation.data().into()))
         } else {

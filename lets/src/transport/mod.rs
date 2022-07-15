@@ -1,9 +1,9 @@
 // Rust
 use alloc::{boxed::Box, rc::Rc, vec::Vec};
-use core::cell::RefCell;
+use core::{any::Any, cell::RefCell};
 
 // 3rd-party
-use anyhow::{anyhow, ensure, Result};
+use anyhow::{anyhow, ensure};
 use async_trait::async_trait;
 
 // IOTA
@@ -21,23 +21,32 @@ pub trait Transport<'a> {
     type Msg;
     type SendResponse;
     /// Send a message
-    async fn send_message(&mut self, address: Address, msg: Self::Msg) -> Result<Self::SendResponse>
+    async fn send_message(&mut self, address: Address, msg: Self::Msg) -> Result<Self::SendResponse, Box<dyn Any + Send + Sync>>
     where
         'a: 'async_trait;
 
     /// Receive messages
-    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Self::Msg>>
+    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Self::Msg>, Box<dyn Any + Send + Sync>>
     where
         'a: 'async_trait;
 
     /// Receive a single message
-    async fn recv_message(&mut self, address: Address) -> Result<Self::Msg> {
+    async fn recv_message(&mut self, address: Address) -> Result<Self::Msg, Box<dyn Any + Send + Sync>> {
         let mut msgs = self.recv_messages(address).await?;
         if let Some(msg) = msgs.pop() {
-            ensure!(msgs.is_empty(), "More than one message found with address {}", address);
-            Ok(msg)
+            if !msgs.is_empty() {
+                Err(Box::new(anyhow!(
+                    "More than one message found with address {}",
+                    address
+                )))
+            } else {
+                Ok(msg)
+            }
         } else {
-            Err(anyhow!("Message at address {} not found in transport", address))
+            Err(Box::new(anyhow!(
+                "Message at address {} not found in transport",
+                address
+            )))
         }
     }
 }
@@ -48,7 +57,7 @@ impl<'a, Tsp: Transport<'a>> Transport<'a> for Rc<RefCell<Tsp>> {
     type SendResponse = Tsp::SendResponse;
 
     // Send a message.
-    async fn send_message(&mut self, address: Address, msg: Tsp::Msg) -> Result<Tsp::SendResponse>
+    async fn send_message(&mut self, address: Address, msg: Tsp::Msg) -> Result<Tsp::SendResponse, Box<dyn Any + Send + Sync>>
     where
         Self::Msg: 'async_trait,
     {
@@ -56,7 +65,7 @@ impl<'a, Tsp: Transport<'a>> Transport<'a> for Rc<RefCell<Tsp>> {
     }
 
     // Receive messages with default options.
-    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Tsp::Msg>> {
+    async fn recv_messages(&mut self, address: Address) -> Result<Vec<Tsp::Msg>, Box<dyn Any + Send + Sync>> {
         self.borrow_mut().recv_messages(address).await
     }
 }

@@ -44,5 +44,7 @@ mod message;
 /// [`User`] API.
 mod api;
 
+mod error;
+
 pub use api::{message::Message, send_response::SendResponse, user::User};
 pub use lets::{address::Address, id, message::TransportMessage, transport};

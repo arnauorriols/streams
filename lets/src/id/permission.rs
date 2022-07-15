@@ -116,6 +116,12 @@ impl<Identifier> Permissioned<Identifier> {
     }
 }
 
+impl <Identifier> Permissioned<Identifier> where Identifier: Copy {
+    pub fn to_identifier(self) -> Identifier {
+        *self.identifier()
+    }
+}
+
 impl<Identifier> AsRef<Identifier> for Permissioned<Identifier> {
     fn as_ref(&self) -> &Identifier {
         self.identifier()
